@@ -33,13 +33,22 @@ function LoginForm({ existingUser }) {
     }
   }
 
-//   async function handleLoginWithGoogle() {
-//     try {
-//       await FirebaseAuthService.loginWithGoogle();
-//     } catch (error) {
-//       alert(error.message);
-//     }
-//   }
+  async function handleRegisterUser(event) {
+    event.preventDefault()
+    try {
+      await FirebaseAuthService.registerUser(username, password);
+    }
+    catch(error){
+      alert(error.message);
+    }
+  }
+  // async function handleLoginWithGoogle() {
+  //   try {
+  //     await FirebaseAuthService.loginWithGoogle();
+  //   } catch (error) {
+  //     alert(error.message);
+  //   }
+  // }
 
   return (
     <div>
@@ -88,6 +97,7 @@ function LoginForm({ existingUser }) {
               >
                 Reset password
               </button>
+              <button className="primary-button" onClick={handleRegisterUser}>Register</button>
               {/* <button
                 type="button"
                 onClick={handleLoginWithGoogle}
