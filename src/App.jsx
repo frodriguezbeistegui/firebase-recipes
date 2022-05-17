@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, startTransition } from "react";
 
 import FirebaseAuthService from "./FirebaseAuthService";
 
@@ -10,10 +10,11 @@ import FirebaseFirestoreService from "./FirebaseFirestoreService";
 
 function App() {
   const [user, setUser] = useState(null);
+  const [currentRecipe, setCurrentRecipe] = useState(null);
   const [recipes, setRecipes] = useState([]);
 
   useEffect(() => {
-    fetchRecipes()
+      fetchRecipes()
       .then((fetchedRecipes) => {
         setRecipes(fetchedRecipes);
       })
@@ -21,19 +22,33 @@ function App() {
         console.log(error.message);
         throw error;
       });
+      // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user]);
 
   FirebaseAuthService.subscribeToAuthChanges(setUser);
 
   async function fetchRecipes() {
+    const queries = [];
+
+    if (!user) {
+      queries.push({
+        field: "isPublished",
+        condition: "==",
+        value: true,
+      });
+    }
+
     let fetchedRecipes = [];
     try {
-      const response = await FirebaseFirestoreService.readDocuments('recipes');
+      const response = await FirebaseFirestoreService.readDocuments({
+        collection: "recipes",
+        queries: queries,
+      });
       const newRecipes = response.docs.map((recipeDoc) => {
         const id = recipeDoc.id;
         const data = recipeDoc.data();
         data.publishDate = new Date(data.publishDate.seconds * 1000);
-        console.log()
+        console.log();
         return { ...data, id };
       });
       fetchedRecipes = [...newRecipes];
@@ -44,16 +59,16 @@ function App() {
     return fetchedRecipes;
   }
 
-async function handleFetchRecipes(){
-  try {
-    const fetchedRecipes = await fetchRecipes();
+  async function handleFetchRecipes() {
+    try {
+      const fetchedRecipes = await fetchRecipes();
 
-    setRecipes(fetchedRecipes)
-  } catch (error) {
-    console.error(error.message)
-    throw error
+      setRecipes(fetchedRecipes);
+    } catch (error) {
+      console.error(error.message);
+      throw error;
+    }
   }
-}
 
   async function handleAddRecipe(newRecipe) {
     try {
@@ -70,6 +85,61 @@ async function handleFetchRecipes(){
     }
   }
 
+  function handleEditRecipeClick(recipeId) {
+    const selectedRecipe = recipes.find((recipe) => {
+      return recipe.id === recipeId;
+    });
+
+    if (selectedRecipe) {
+      startTransition(() => {
+        setCurrentRecipe(selectedRecipe);
+        window.scrollTo(0, document.body.scrollHeight);
+      });
+    }
+  }
+
+  async function handleUpdateRecipe(newRecipe, recipeId) {
+    try {
+      await FirebaseFirestoreService.updateDocument(
+        "recipes",
+        recipeId,
+        newRecipe
+      );
+
+      handleFetchRecipes();
+
+      alert(`succesfully updated a recipe with an ID = ${recipeId}`);
+      setCurrentRecipe(null);
+    } catch (error) {
+      alert(error.message);
+    }
+  }
+
+  function handleEditRecipeCancel() {
+    setCurrentRecipe(null);
+  }
+
+  function lookupCategoryLabel(categoryKey) {
+    const categories = {
+      breadsSandwitchesPizza: "Breads, Sandwitches, and Pizza",
+      eggsAndBreakfast: "Eggs & Breakfast",
+      dessetsAndBakedGoods: "Desserts & Baked Goods",
+      fishAndSeafood: "Fish & Seafood",
+      vegetables: "Vegetables",
+    };
+    const label = categories[categoryKey];
+    return label;
+  }
+
+  function formatDate(date) {
+    const day = date.getUTCDate();
+    const month = date.getUTCMonth() + 1;
+    const year = date.getFullYear();
+    const dateString = `${month}-${day}-${year}`;
+
+    return dateString;
+  }
+
   return (
     <div className="App">
       <div className="title-row">
@@ -78,24 +148,44 @@ async function handleFetchRecipes(){
       </div>
       <div className="main">
         <div className="center">
-          <div className="recipe-list-box">{
-            recipes && recipes.length > 0 ? (
-              <div className="recipe-list">{
-                recipes.map((recipe) => { 
+          <div className="recipe-list-box">
+            {recipes && recipes.length > 0 ? (
+              <div className="recipe-list">
+                {recipes.map((recipe) => {
                   return (
                     <div className="recipe-card" key={recipe.id}>
+                      {recipe.isPublished === false ? (
+                        <div className="unpublished">UNPUBLISHED</div>
+                      ) : null}
                       <div className="recipe-name">{recipe.name}</div>
-                      <div className="recipe-field">Category: {recipe.category}</div>
-                      <div className="recipe-field">Publish Date: {recipe.publishDate.toString()}</div>
-                      
+                      <div className="recipe-field">
+                        Category: {lookupCategoryLabel(recipe.category)}
+                      </div>
+                      <div className="recipe-field">
+                        Publish Date: {formatDate(recipe.publishDate)}
+                      </div>
+                      {user ? (
+                        <button
+                          type="button"
+                          onClick={() => handleEditRecipeClick(recipe.id)}
+                          className="primary-button edit-button"
+                        >
+                          EDIT
+                        </button>
+                      ) : null}
                     </div>
-                  )
-                 })
-              }</div>
-            ) : null
-          }</div>
+                  );
+                })}
+              </div>
+            ) : null}
+          </div>
         </div>
-        {user ? <AddEditRecipeForm handleAddRecipe={handleAddRecipe} /> : null}
+        {user ? <AddEditRecipeForm
+        existingRecipe={currentRecipe}
+         handleAddRecipe={handleAddRecipe} 
+         handleUpdateRecipe={handleUpdateRecipe}
+         handleEditRecipeCancel={handleEditRecipeCancel}
+         /> : null}
       </div>
     </div>
   );
