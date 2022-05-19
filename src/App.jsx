@@ -14,7 +14,7 @@ function App() {
   const [recipes, setRecipes] = useState([]);
 
   useEffect(() => {
-      fetchRecipes()
+    fetchRecipes()
       .then((fetchedRecipes) => {
         setRecipes(fetchedRecipes);
       })
@@ -22,7 +22,7 @@ function App() {
         console.log(error.message);
         throw error;
       });
-      // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user]);
 
   FirebaseAuthService.subscribeToAuthChanges(setUser);
@@ -115,6 +115,24 @@ function App() {
     }
   }
 
+  async function handleDeleteRecipe(recipeId) {
+    const deleteConfirmation = window.confirm(
+      "Are you sure you want to delete this recipe? OK for Yes. And Cancel for no."
+    );
+    if (deleteConfirmation) {
+      try {
+        await FirebaseFirestoreService.deleteDocument("recipe", recipeId);
+        handleFetchRecipes();
+        setCurrentRecipe(null);
+        window.scrollTo(0, 0);
+        alert(`succesfully deleted a recipe with an ID = ${recipeId}`);
+      } catch (error) {
+        alert(error.message);
+        throw error;
+      }
+    }
+  }
+
   function handleEditRecipeCancel() {
     setCurrentRecipe(null);
   }
@@ -180,12 +198,15 @@ function App() {
             ) : null}
           </div>
         </div>
-        {user ? <AddEditRecipeForm
-        existingRecipe={currentRecipe}
-         handleAddRecipe={handleAddRecipe} 
-         handleUpdateRecipe={handleUpdateRecipe}
-         handleEditRecipeCancel={handleEditRecipeCancel}
-         /> : null}
+        {user ? (
+          <AddEditRecipeForm
+            existingRecipe={currentRecipe}
+            handleAddRecipe={handleAddRecipe}
+            handleUpdateRecipe={handleUpdateRecipe}
+            handleEditRecipeCancel={handleEditRecipeCancel}
+            handleDeleteRecipe={handleDeleteRecipe}
+          />
+        ) : null}
       </div>
     </div>
   );

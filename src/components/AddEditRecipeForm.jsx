@@ -5,6 +5,7 @@ function AddEditRecipeForm({
   handleAddRecipe,
   handleUpdateRecipe,
   handleEditRecipeCancel,
+  handleDeleteRecipe,
 }) {
   const [name, setName] = useState("");
   const [category, setCategory] = useState("");
@@ -207,6 +208,9 @@ function AddEditRecipeForm({
               className="primary-button action-button"
             >
               Cancel
+            </button>
+            <button type="button" onClick={()=>handleDeleteRecipe(existingRecipe.id)} className="primary-button action-button">
+              Delete
             </button>
           </>
         ) : null}
