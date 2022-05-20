@@ -14,6 +14,7 @@ function App() {
   const [recipes, setRecipes] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
   const [categoryFilter, setCatergoryFilter] = useState("");
+  const [orderBy, setOrderBy] = useState("publishDateDesc");
 
   useEffect(() => {
     setIsLoading(true);
@@ -29,19 +30,19 @@ function App() {
         setIsLoading(false);
       });
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [user, categoryFilter]);
+  }, [user, categoryFilter, orderBy]);
 
   FirebaseAuthService.subscribeToAuthChanges(setUser);
 
   async function fetchRecipes() {
     const queries = [];
 
-    if(categoryFilter){
+    if (categoryFilter) {
       queries.push({
         field: "category",
         condition: "==",
         value: categoryFilter,
-      })
+      });
     }
 
     if (!user) {
@@ -52,11 +53,29 @@ function App() {
       });
     }
 
+    const orderByField = "publishDate";
+    let orderByDirection;
+
+    if (orderBy) {
+      switch (orderBy) {
+        case "publishDateAsc":
+          orderByDirection = "asc";
+          break;
+        case "publishDateDesc":
+          orderByDirection = "desc";
+          break;
+        default:
+          break;
+      }
+    }
+
     let fetchedRecipes = [];
     try {
       const response = await FirebaseFirestoreService.readDocuments({
         collection: "recipes",
         queries: queries,
+        orderByField: orderByField,
+        orderByDirection: orderByDirection,
       });
       const newRecipes = response.docs.map((recipeDoc) => {
         const id = recipeDoc.id;
@@ -180,7 +199,7 @@ function App() {
       </div>
       <div className="main">
         <div className="row filters">
-        <label htmlFor="" className="recipe-label input-label">
+          <label htmlFor="" className="recipe-label input-label">
             Category:
             <select
               value={categoryFilter}
@@ -198,6 +217,18 @@ function App() {
               </option>
               <option value="fishAndSeafood">Fish & Seafood</option>
               <option value="vegetables">Vegetables</option>
+            </select>
+          </label>
+          <label className="input-label">
+            <select
+              value={orderBy}
+              onChange={(e) => setOrderBy(e.target.value)}
+              className="select"
+            >
+              <option value="publishDateDesc">
+                Publish Date (newest - oldest)
+              </option>
+              <option value="publishDateAsc">Publish Date (oldest - newest)</option>
             </select>
           </label>
         </div>
