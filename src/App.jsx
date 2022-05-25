@@ -9,6 +9,7 @@ import "./App.css";
 import FirebaseFirestoreService from "./FirebaseFirestoreService";
 
 function App() {
+
   const [user, setUser] = useState(null);
   const [currentRecipe, setCurrentRecipe] = useState(null);
   const [recipes, setRecipes] = useState([]);
@@ -71,6 +72,7 @@ function App() {
     }
 
     let fetchedRecipes = [];
+
     try {
       const response = await FirebaseFirestoreService.readDocuments({
         collection: "recipes",
@@ -80,7 +82,9 @@ function App() {
         perPage: recipesPerPage,
         cursorId: cursorId,
       });
+
       const newRecipes = response.docs.map((recipeDoc) => {
+        
         const id = recipeDoc.id;
         const data = recipeDoc.data();
         data.publishDate = new Date(data.publishDate.seconds * 1000);
@@ -208,7 +212,6 @@ function App() {
     const month = date.getUTCMonth() + 1;
     const year = date.getFullYear();
     const dateString = `${month}-${day}-${year}`;
-
     return dateString;
   }
 
